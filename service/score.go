@@ -2,33 +2,68 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/fernandoalava/softwareengineer-test-task/domain"
+	"github.com/samber/lo"
 )
 
-type ScoreRepository interface {
-	FetchAggregateScoreByTicketInRange(ctx context.Context, from time.Time, to time.Time) (response []domain.ScoreByTicket, err error)
+type TicketRepository interface {
+	FetchAll(ctx context.Context) (response []domain.Ticket, err error)
 }
 
-type RatingCategory interface {
-	FetchAllInRange(ctx context.Context, from time.Time, to time.Time) (result []domain.Rating, err error)
+type RatingCategoryRepository interface {
+	FetchAll(ctx context.Context) (response []domain.RatingCategory, err error)
+}
+
+type RatingRepository interface {
+	FindByCreatedAtBetween(ctx context.Context, from time.Time, to time.Time) (response []domain.Rating, err error)
 }
 
 type ScoreService struct {
-	scoreRepository ScoreRepository
+	ticketRepository         TicketRepository
+	ratingCategoryRepository RatingCategoryRepository
+	ratingRepository         RatingRepository
 }
 
-func NewScoreService(scoreRepository ScoreRepository) *ScoreService {
+func NewScoreService(ticketRepository TicketRepository, ratingCategoryRepository RatingCategoryRepository, ratingRepository RatingRepository) *ScoreService {
 	return &ScoreService{
-		scoreRepository: scoreRepository,
+		ticketRepository:         ticketRepository,
+		ratingCategoryRepository: ratingCategoryRepository,
+		ratingRepository:         ratingRepository,
 	}
 }
 
-func (scoreService *ScoreService) GetScoreByTicketInRange(ctx context.Context, from time.Time, to time.Time) (res []domain.ScoreByTicket, err error) {
-	res, err = scoreService.scoreRepository.FetchAggregateScoreByTicketInRange(ctx, from, to)
+func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from time.Time, to time.Time) (res []domain.ScoreByTicket, err error) {
+	tickets, err := scoreService.ticketRepository.FetchAll(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	ratingCategories, err := scoreService.ratingCategoryRepository.FetchAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ratingCategoriesMap := lo.Associate(ratingCategories, func(ratingCategory domain.RatingCategory) (uint64, domain.RatingCategory) {
+		return ratingCategory.ID, ratingCategory
+	})
+	ratings, err := scoreService.ratingRepository.FindByCreatedAtBetween(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+	ratingsMap := lo.Map(ratings, func(rating domain.Rating, _ int) domain.RatingWithCategory {
+		return domain.RatingWithCategory{
+			ID:             rating.ID,
+			Rating:         rating.Rating,
+			TicketID:       rating.TicketID,
+			RatingCategory: ratingCategoriesMap[rating.RatingCategoryID],
+			CreatedAt:      rating.CreatedAt,
+		}
+	})
+	fmt.Println(tickets)
+	fmt.Println(ratingCategories)
+	fmt.Println(ratings)
+	fmt.Println(ratingsMap)
 	return
 }

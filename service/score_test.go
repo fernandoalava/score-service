@@ -20,13 +20,15 @@ func TestCorruptDbErrors(t *testing.T) {
 	}
 	defer db.Close()
 
-	scoreRepository := repository.NewScoreRepository(db)
-	scoreService := service.NewScoreService(scoreRepository)
+	ratingCategoryRepository := repository.NewRatingCategoryRepository(db)
+	ratingRepository := repository.NewRatingRepository(db)
+	ticketRepository := repository.NewTicketRepository(db)
+	scoreService := service.NewScoreService(ticketRepository,ratingCategoryRepository, ratingRepository)
 
 	from, _ := util.StringToTime("2019-07-17T00:00:00")
 	to, _ := util.StringToTime("2019-07-17T23:59:00")
 
-	results, err := scoreService.GetScoreByTicketInRange(context.TODO(), from, to)
+	results, err := scoreService.GetScoreByTicket(context.TODO(), from, to)
 	assert.Nil(t, err)
 	assert.Len(t, results, 108)
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/fernandoalava/softwareengineer-test-task/domain"
+	"github.com/fernandoalava/softwareengineer-test-task/util"
 )
 
 type RatingRepository struct {
@@ -16,9 +17,9 @@ func NewRatingRepository(conn *sql.DB) *RatingRepository {
 	return &RatingRepository{conn}
 }
 
-func (repository *RatingRepository) FetchAllInRange(ctx context.Context, from time.Time, to time.Time) (result []domain.Rating, err error) {
-	query := "SELECT id, rating, ticket_id, rating_category_id, created_at weight FROM rating WHERE created_at BETWEEN ? AND  ?"
-	rows, err := repository.Conn.QueryContext(ctx, query)
+func (repository *RatingRepository) FindByCreatedAtBetween(ctx context.Context, from time.Time, to time.Time) (result []domain.Rating, err error) {
+	query := "SELECT id, rating, ticket_id, rating_category_id, created_at weight FROM ratings WHERE created_at BETWEEN ? AND  ?"
+	rows, err := repository.Conn.QueryContext(ctx, query, util.TimeToString(from), util.TimeToString(to))
 	if err != nil {
 		// TODO: use some logs
 		return nil, err

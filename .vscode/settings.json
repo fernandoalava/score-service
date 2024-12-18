@@ -6,5 +6,6 @@
             "database": "./database.db",
             "name": "zendesk-db"
         }
-    ]
+    ],
+    "sqltools.useNodeRuntime": true
 }
