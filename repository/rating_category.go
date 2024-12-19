@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"log"
+
 	"github.com/fernandoalava/softwareengineer-test-task/domain"
 )
 
@@ -18,14 +20,14 @@ func (repository *RatingCategoryRepository) FetchAll(ctx context.Context) (resul
 	query := "SELECT id, name, weight FROM rating_categories"
 	rows, err := repository.Conn.QueryContext(ctx, query)
 	if err != nil {
-		// TODO: use some logs
+		log.Println("error while querying rating_categories table", err)
 		return nil, err
 	}
 
 	defer func() {
 		errRow := rows.Close()
 		if errRow != nil {
-			// TODO: use some logs
+			log.Println("error trying to close rows", err)
 		}
 	}()
 

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"time"
 
+	"log"
+
 	"github.com/fernandoalava/softwareengineer-test-task/domain"
 	"github.com/fernandoalava/softwareengineer-test-task/util"
 )
@@ -21,14 +23,14 @@ func (repository *RatingRepository) FindByCreatedAtBetween(ctx context.Context, 
 	query := "SELECT id, rating, ticket_id, rating_category_id, created_at weight FROM ratings WHERE created_at BETWEEN ? AND  ?"
 	rows, err := repository.Conn.QueryContext(ctx, query, util.TimeToString(from), util.TimeToString(to))
 	if err != nil {
-		// TODO: use some logs
+		log.Println("error while querying ratings table", err)
 		return nil, err
 	}
 
 	defer func() {
 		errRow := rows.Close()
 		if errRow != nil {
-			// TODO: use some logs
+			log.Println("error trying to close rows", err)
 		}
 	}()
 
