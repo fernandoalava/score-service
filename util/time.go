@@ -11,7 +11,7 @@ type DateRange struct {
 }
 
 func isValidTime(time time.Time) bool {
-	return time.IsZero()
+	return !time.IsZero()
 }
 
 func ValidateTimeRange(from, to time.Time) error {

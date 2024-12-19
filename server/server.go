@@ -1,18 +1,11 @@
-package main
+package server
 
 import (
 	"context"
 
-	"database/sql"
-	"flag"
-	"fmt"
-	"log"
-	"net"
-
 	pb "github.com/fernandoalava/softwareengineer-test-task/grpc"
-	"github.com/fernandoalava/softwareengineer-test-task/repository"
+
 	"github.com/fernandoalava/softwareengineer-test-task/service"
-	"google.golang.org/grpc"
 	_ "modernc.org/sqlite"
 )
 
@@ -48,43 +41,27 @@ func (server *ScoreServer) GetAggregatedCategoryScoresOverTime(request *pb.DateR
 	return nil
 }
 
-func newScoreServer(scoreService *service.ScoreService) *ScoreServer {
-	server := &ScoreServer{scoreService: scoreService, ctx: context.Background()}
-	return server
+func (server *ScoreServer) GetOverAllQualityScore(ctx context.Context, request *pb.DateRangeRequest) (*pb.OverAllQualityScoreResponse, error) {
+	result, err := server.scoreService.GetOverAllQualityScore(ctx, request.From.AsTime(), request.To.AsTime())
+	if err != nil {
+		return nil, err
+	}
+	return &pb.OverAllQualityScoreResponse{OverAllScore: float32(result)}, nil
 }
 
-var (
-	port     = flag.Int("port", 50051, "The server port")
-	database = flag.String("database", "database.db", "The database path")
-)
-
-func main() {
-	flag.Parse()
-	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
+func (server *ScoreServer) GetPeriodOverPeriodScoreChange(ctx context.Context, request *pb.DateRangeRequest) (*pb.GetPeriodOverPeriodScoreChangeResponse, error) {
+	result, err := server.scoreService.GetPeriodOverPeriodScoreChange(ctx, request.From.AsTime(), request.To.AsTime())
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		return nil, err
 	}
-	db, err := sql.Open("sqlite", *database)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		err := db.Close()
-		if err != nil {
-			log.Fatal("got error when closing the DB connection", err)
-		}
-	}()
+	return &pb.GetPeriodOverPeriodScoreChangeResponse{
+		CurrentPeriod:   service.ToGrpcPeriodScore(result.CurrentPeriod),
+		PreviousPeriod:  service.ToGrpcPeriodScore(result.PreviousPeriod),
+		ScoreDifference: float32(result.ScoreDifference),
+	}, nil
+}
 
-	ratingCategoryRepository := repository.NewRatingCategoryRepository(db)
-	ratingRepository := repository.NewRatingRepository(db)
-	ticketRepository := repository.NewTicketRepository(db)
-	scoreService := service.NewScoreService(ticketRepository, ratingCategoryRepository, ratingRepository)
-	server := newScoreServer(scoreService)
-	grpcServer := grpc.NewServer()
-	pb.RegisterScoresServer(grpcServer, server)
-	log.Printf("server listening at %v", listener.Addr())
-	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
-
+func NewScoreServer(scoreService *service.ScoreService) *ScoreServer {
+	server := &ScoreServer{scoreService: scoreService, ctx: context.Background()}
+	return server
 }

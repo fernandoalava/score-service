@@ -43,3 +43,11 @@ func ToGrpcCategoryScoreOverTime(categoryScoreOverTime CategoryScoreOverTime) *g
 		TotalRating: int32(categoryScoreOverTime.TotalRating),
 	}
 }
+
+func ToGrpcPeriodScore(periodScore PeriodScore)*grpc.PeriodScore{
+	return &grpc.PeriodScore{
+		From: timestamppb.New(periodScore.From),
+		To: timestamppb.New(periodScore.To),
+		Score: float32(periodScore.Score),
+	}
+}

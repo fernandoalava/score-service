@@ -1,4 +1,4 @@
-package service_test
+package tests
 
 import (
 	"context"
@@ -13,18 +13,28 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func TestGetScoreByTicket(t *testing.T) {
+func getScoreService() (*service.ScoreService, func()) {
 	db, err := sql.Open("sqlite", "../database.db")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	closer := func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal("got error when closing the DB connection", err)
+		}
+	}
 
 	ratingCategoryRepository := repository.NewRatingCategoryRepository(db)
 	ratingRepository := repository.NewRatingRepository(db)
 	ticketRepository := repository.NewTicketRepository(db)
 	scoreService := service.NewScoreService(ticketRepository, ratingCategoryRepository, ratingRepository)
+	return scoreService, closer
+}
 
+func TestGetScoreByTicket(t *testing.T) {
+	scoreService, closer := getScoreService()
+	defer closer()
 	from, _ := util.StringToTime("2019-07-17T00:00:00")
 	to, _ := util.StringToTime("2019-07-17T23:59:00")
 
@@ -34,36 +44,20 @@ func TestGetScoreByTicket(t *testing.T) {
 }
 
 func TestGetOverAllQualityScore(t *testing.T) {
-	db, err := sql.Open("sqlite", "../database.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	ratingCategoryRepository := repository.NewRatingCategoryRepository(db)
-	ratingRepository := repository.NewRatingRepository(db)
-	ticketRepository := repository.NewTicketRepository(db)
-	scoreService := service.NewScoreService(ticketRepository, ratingCategoryRepository, ratingRepository)
+	scoreService, closer := getScoreService()
+	defer closer()
 
 	from, _ := util.StringToTime("2019-07-17T00:00:00")
 	to, _ := util.StringToTime("2019-07-17T23:59:00")
 
 	results, err := scoreService.GetOverAllQualityScore(context.TODO(), from, to)
 	assert.Nil(t, err)
-	assert.Equal(t, results, float64(36.61))
+	assert.Equal(t, float64(36.61), results)
 }
 
 func TestGetAggregatedCategoryScoresOverTime(t *testing.T) {
-	db, err := sql.Open("sqlite", "../database.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	ratingCategoryRepository := repository.NewRatingCategoryRepository(db)
-	ratingRepository := repository.NewRatingRepository(db)
-	ticketRepository := repository.NewTicketRepository(db)
-	scoreService := service.NewScoreService(ticketRepository, ratingCategoryRepository, ratingRepository)
+	scoreService, closer := getScoreService()
+	defer closer()
 
 	from, _ := util.StringToTime("2019-07-17T00:00:00")
 	to, _ := util.StringToTime("2019-07-17T23:59:00")
@@ -74,21 +68,13 @@ func TestGetAggregatedCategoryScoresOverTime(t *testing.T) {
 }
 
 func TestGetPeriodOverPeriodScoreChange(t *testing.T) {
-	db, err := sql.Open("sqlite", "../database.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	ratingCategoryRepository := repository.NewRatingCategoryRepository(db)
-	ratingRepository := repository.NewRatingRepository(db)
-	ticketRepository := repository.NewTicketRepository(db)
-	scoreService := service.NewScoreService(ticketRepository, ratingCategoryRepository, ratingRepository)
+	scoreService, closer := getScoreService()
+	defer closer()
 
 	from, _ := util.StringToTime("2019-07-17T00:00:00")
 	to, _ := util.StringToTime("2019-07-17T23:59:00")
 
 	results, err := scoreService.GetPeriodOverPeriodScoreChange(context.TODO(), from, to)
 	assert.Nil(t, err)
-	assert.Equal(t, results.ScoreDifference, 0.68)
+	assert.Equal(t, 0.68, results.ScoreDifference)
 }
