@@ -1,6 +1,9 @@
 package util
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 const DateTimeDefaultStringFormat = "2006-01-02T15:04:05"
 
@@ -11,4 +14,8 @@ func TimeToString(value time.Time) string {
 func StringToTime(value string) (t time.Time, err error) {
 	t, err = time.Parse(DateTimeDefaultStringFormat, value)
 	return
+}
+
+func FormatScore(score float64) float64 {
+	return math.Round(score*100) / 100
 }

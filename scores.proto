@@ -1,0 +1,61 @@
+
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package grpc;
+
+option go_package = "/grpc";
+
+service Scores {
+  rpc GetScoreByTicket (DateRangeRequest) returns (stream ScoreByTicket) {}
+  rpc GetAggregatedCategoryScoresOverTime (DateRangeRequest) returns (stream CategoryScoreOverTime){}
+  rpc GetOverAllQualityScore (DateRangeRequest) returns(OverAllQualityScoreResponse){}
+  rpc GetPeriodOverPeriodScoreChange(DateRangeRequest) returns(GetPeriodOverPeriodScoreChangeResponse){}
+}
+
+message DateRangeRequest {
+     google.protobuf.Timestamp from = 1;
+     google.protobuf.Timestamp to = 2;
+}
+
+message RatingCategoryScore {
+    int64 ratingCategoryID = 1;
+	string ratingCategoryName = 2;
+	float score = 3;
+}
+
+message ScoreByTicket {
+    int64 ticket_id = 1;
+    repeated RatingCategoryScore ratingCategoryScore = 2;
+}
+
+message PeriodScoreWithRatings{
+    google.protobuf.Timestamp from = 1;
+    google.protobuf.Timestamp to = 2;
+    float score = 3;
+    int32 ratings = 4;
+}
+
+message CategoryScoreOverTime{
+    string categoryName = 1;
+    repeated PeriodScoreWithRatings periodScoreWithRatings = 2;
+    float totalScore = 3;
+    int32 totalRating = 4;
+}
+
+message OverAllQualityScoreResponse{
+    float overAllScore = 1;
+}
+
+message PeriodScore{
+    google.protobuf.Timestamp from = 1;
+    google.protobuf.Timestamp to = 2;
+    float score = 3;
+}
+
+message GetPeriodOverPeriodScoreChangeResponse{
+    PeriodScore CurrentPeriod   = 1;
+	PeriodScore PreviousPeriod  = 2;
+	float ScoreDifference = 3;
+}
