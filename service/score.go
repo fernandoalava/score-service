@@ -49,7 +49,23 @@ type TicketScoreByCategory struct {
 	RatingCategoryScores []RatingCategoryScore
 }
 
-func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from time.Time, to time.Time) (res []TicketScoreByCategory, err error) {
+func getRatingsWithRatingCategory(ratings []domain.Rating, ratingCategories []domain.RatingCategory) []domain.RatingWithCategory {
+	ratingCategoriesMap := lo.Associate(ratingCategories, func(ratingCategory domain.RatingCategory) (uint64, domain.RatingCategory) {
+		return ratingCategory.ID, ratingCategory
+	})
+	ratingsWithCategories := lo.Map(ratings, func(rating domain.Rating, _ int) domain.RatingWithCategory {
+		return domain.RatingWithCategory{
+			ID:             rating.ID,
+			Rating:         rating.Rating,
+			TicketID:       rating.TicketID,
+			RatingCategory: ratingCategoriesMap[rating.RatingCategoryID],
+			CreatedAt:      rating.CreatedAt,
+		}
+	})
+	return ratingsWithCategories
+}
+
+func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from time.Time, to time.Time) (scoresByTicket []TicketScoreByCategory, err error) {
 	tickets, err := scoreService.ticketRepository.FetchAll(ctx)
 	if err != nil {
 		return nil, err
@@ -60,24 +76,12 @@ func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from tim
 		return nil, err
 	}
 
-	ratingCategoriesMap := lo.Associate(ratingCategories, func(ratingCategory domain.RatingCategory) (uint64, domain.RatingCategory) {
-		return ratingCategory.ID, ratingCategory
-	})
-
 	ratings, err := scoreService.ratingRepository.FindByCreatedAtBetween(ctx, from, to)
 	if err != nil {
 		return nil, err
 	}
 
-	ratingsWithCategories := lo.Map(ratings, func(rating domain.Rating, _ int) domain.RatingWithCategory {
-		return domain.RatingWithCategory{
-			ID:             rating.ID,
-			Rating:         rating.Rating,
-			TicketID:       rating.TicketID,
-			RatingCategory: ratingCategoriesMap[rating.RatingCategoryID],
-			CreatedAt:      rating.CreatedAt,
-		}
-	})
+	ratingsWithCategories := getRatingsWithRatingCategory(ratings, ratingCategories)
 
 	ratingsWithCategoryGroupedByTicketId := lo.GroupBy(ratingsWithCategories, func(ratingWithCategory domain.RatingWithCategory) uint64 {
 		return ratingWithCategory.ID
@@ -96,7 +100,7 @@ func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from tim
 		return ratingsWithScore
 	})
 
-	scoresByTicket := lo.Map(tickets, func(ticket domain.Ticket, _ int) TicketScoreByCategory {
+	scoresByTicket = lo.Map(tickets, func(ticket domain.Ticket, _ int) TicketScoreByCategory {
 		ratingCategoryScores := lo.Map(ratingCategories, func(ratingCategory domain.RatingCategory, _ int) RatingCategoryScore {
 			score, exists := ticketsWithRatingCategoryScore[ticket.ID][ratingCategory]
 			if !exists {
@@ -114,5 +118,26 @@ func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from tim
 		}
 	})
 
-	return scoresByTicket, nil
+	return
+}
+
+func (scoreService *ScoreService) GetOverAllQualityScore(ctx context.Context, from time.Time, to time.Time) (overAllScore float32, err error) {
+	ratingCategories, err := scoreService.ratingCategoryRepository.FetchAll(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	ratings, err := scoreService.ratingRepository.FindByCreatedAtBetween(ctx, from, to)
+	if err != nil {
+		return 0, err
+	}
+
+	ratingsWithRatingCategory := getRatingsWithRatingCategory(ratings, ratingCategories)
+	ratingsWithRatingCategoryAndScores := lo.Map(ratingsWithRatingCategory, func(ratingWithCategory domain.RatingWithCategory, _ int) float32 {
+		return calculateScore(float32(ratingWithCategory.Rating), float32(ratingWithCategory.RatingCategory.Weight))
+	})
+
+	overAllScore = lo.Sum(ratingsWithRatingCategoryAndScores) / float32(len(ratingsWithRatingCategoryAndScores))
+
+	return
 }
