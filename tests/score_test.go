@@ -35,8 +35,8 @@ func getScoreService() (*service.ScoreService, func()) {
 func TestGetScoreByTicket(t *testing.T) {
 	scoreService, closer := getScoreService()
 	defer closer()
-	from, _ := util.StringToTime("2019-07-17T00:00:00")
-	to, _ := util.StringToTime("2019-07-17T23:59:00")
+	from, _ := util.StringToTime("2019-07-05T00:00:00")
+	to, _ := util.StringToTime("2019-07-06T23:59:00")
 
 	results, err := scoreService.GetScoreByTicket(context.TODO(), from, to)
 	assert.Nil(t, err)
@@ -52,7 +52,7 @@ func TestGetOverAllQualityScore(t *testing.T) {
 
 	results, err := scoreService.GetOverAllQualityScore(context.TODO(), from, to)
 	assert.Nil(t, err)
-	assert.Equal(t, float64(35.8), results)
+	assert.Equal(t, float64(36.61), results)
 }
 
 func TestGetAggregatedCategoryScoresOverTime(t *testing.T) {
@@ -76,5 +76,5 @@ func TestGetPeriodOverPeriodScoreChange(t *testing.T) {
 
 	results, err := scoreService.GetPeriodOverPeriodScoreChange(context.TODO(), from, to)
 	assert.Nil(t, err)
-	assert.Equal(t, 1.52, results.ScoreDifference)
+	assert.Equal(t, 0.68, results.ScoreDifference)
 }

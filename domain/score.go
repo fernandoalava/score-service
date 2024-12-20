@@ -2,6 +2,7 @@ package domain
 
 type ScoreByTicket struct {
 	TicketID     uint64
-	Score        float64
+	CategoryID   uint64
 	CategoryName string
+	Score        float64
 }
