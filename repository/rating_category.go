@@ -16,7 +16,7 @@ func NewRatingCategoryRepository(conn *sql.DB) *RatingCategoryRepository {
 	return &RatingCategoryRepository{conn}
 }
 
-func (repository *RatingCategoryRepository) FetchAll(ctx context.Context) (result []domain.RatingCategory, err error) {
+func (repository *RatingCategoryRepository) FetchAll(ctx context.Context) ([]domain.RatingCategory, error) {
 	query := "SELECT id, name, weight FROM rating_categories"
 	rows, err := repository.Conn.QueryContext(ctx, query)
 	if err != nil {
@@ -31,15 +31,14 @@ func (repository *RatingCategoryRepository) FetchAll(ctx context.Context) (resul
 		}
 	}()
 
-	result = make([]domain.RatingCategory, 0)
+	var result []domain.RatingCategory
 	for rows.Next() {
-		ratingCategory := domain.RatingCategory{}
+		var ratingCategory = domain.RatingCategory{}
 		err = rows.Scan(
 			&ratingCategory.ID,
 			&ratingCategory.Name,
 			&ratingCategory.Weight,
 		)
-
 		if err != nil {
 			return nil, err
 		}

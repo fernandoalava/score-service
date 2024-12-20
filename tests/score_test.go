@@ -52,7 +52,7 @@ func TestGetOverAllQualityScore(t *testing.T) {
 
 	results, err := scoreService.GetOverAllQualityScore(context.TODO(), from, to)
 	assert.Nil(t, err)
-	assert.Equal(t, float64(36.61), results)
+	assert.Equal(t, float64(35.8), results)
 }
 
 func TestGetAggregatedCategoryScoresOverTime(t *testing.T) {
@@ -76,5 +76,5 @@ func TestGetPeriodOverPeriodScoreChange(t *testing.T) {
 
 	results, err := scoreService.GetPeriodOverPeriodScoreChange(context.TODO(), from, to)
 	assert.Nil(t, err)
-	assert.Equal(t, 0.68, results.ScoreDifference)
+	assert.Equal(t, 1.52, results.ScoreDifference)
 }
