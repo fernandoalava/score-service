@@ -81,7 +81,7 @@ func NewScoreService(ticketRepository TicketRepository, ratingCategoryRepository
 }
 
 func calculateScore(rating int, weight float32) float64 {
-	return util.FormatScore(float64((float32(rating) * weight * 1 / 5 * weight) * 100))
+	return util.FormatScore(float64((float32(rating) * weight / 5) * 100))
 }
 
 func getRatingsWithRatingCategory(ratings []domain.Rating, ratingCategories []domain.RatingCategory) []domain.RatingWithCategory {
