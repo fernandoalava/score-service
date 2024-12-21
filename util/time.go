@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -39,8 +40,11 @@ func generateDailyRanges(from, to time.Time) []DateRange {
 
 func generateWeeklyRanges(from, to time.Time) []DateRange {
 	var ranges []DateRange
-	currentStartOfWeek := from
-
+	fromWeekDay := int(from.Weekday())
+	if fromWeekDay == 0 {
+		fromWeekDay = 7
+	}
+	currentStartOfWeek := from.AddDate(0, 0, -(fromWeekDay - 1))
 	for !currentStartOfWeek.After(to) {
 		currentEndOfWeek := currentStartOfWeek.AddDate(0, 0, 6)
 		if currentEndOfWeek.After(to) {
@@ -61,15 +65,35 @@ func GenerateDateRanges(from, to time.Time) []DateRange {
 
 }
 
-func IsDateInRange(date time.Time, dateRange DateRange) bool {
-	return (date.Equal(dateRange.From) || date.After(dateRange.From)) && (date.Equal(dateRange.To) || date.Before(dateRange.To))
-
-}
-
 func CalculatePreviousPeriod(from, to time.Time) (time.Time, time.Time) {
 	duration := to.Sub(from)
 	previousEndDate := from.Add(-time.Nanosecond)
 	previousStartDate := previousEndDate.Add(-duration)
 
 	return previousStartDate, previousEndDate
+}
+
+func ParsePeriodFromString(periodStr string, separator string) (*DateRange, error) {
+	period := strings.Split(periodStr, separator)
+	var fromStr string
+	var toStr string
+	if len(period) == 2 {
+		fromStr = period[0]
+		toStr = period[1]
+	} else if len(period) == 1 {
+		fromStr = period[0]
+		toStr = period[0]
+	} else {
+		return nil, errors.New("invalid period string")
+	}
+	from, err := StringToTimeWithFormat(fromStr, "2006-01-02")
+	if err != nil {
+		return nil, err
+	}
+	to, err := StringToTimeWithFormat(toStr, "2006-01-02")
+	if err != nil {
+		return nil, err
+	}
+	return &DateRange{From: from, To: to}, nil
+
 }

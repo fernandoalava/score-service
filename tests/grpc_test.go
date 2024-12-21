@@ -34,10 +34,9 @@ func grpcServer(ctx context.Context) (pb.ScoresClient, func()) {
 	}
 
 	ratingCategoryRepository := repository.NewRatingCategoryRepository(db)
-	ratingRepository := repository.NewRatingRepository(db)
-	ticketRepository := repository.NewTicketRepository(db)
+	scoreRepository := repository.NewScoreRepository(db)
 
-	scoreService := service.NewScoreService(ticketRepository, ratingCategoryRepository, ratingRepository)
+	scoreService := service.NewScoreService(ratingCategoryRepository, scoreRepository)
 
 	server := server.NewScoreServer(scoreService)
 
@@ -109,7 +108,7 @@ func TestGrpcGetOverAllQualityScore(t *testing.T) {
 	out, err := client.GetOverAllQualityScore(ctx, &pb.DateRangeRequest{From: timestamppb.New(from), To: timestamppb.New(to)})
 
 	assert.Nil(t, err)
-	assert.Equal(t, float32(36.61), out.OverAllScore)
+	assert.Equal(t, float32(49.37), out.OverAllScore)
 }
 
 func TestGrpcGetAggregatedCategoryScoresOverTime(t *testing.T) {
@@ -147,5 +146,5 @@ func TestGrpcGetPeriodOverPeriodScoreChange(t *testing.T) {
 	out, err := client.GetPeriodOverPeriodScoreChange(ctx, &pb.DateRangeRequest{From: timestamppb.New(from), To: timestamppb.New(to)})
 
 	assert.Nil(t, err)
-	assert.Equal(t, float32(0.68), out.ScoreDifference)
+	assert.Equal(t, float32(0.04), out.ScoreDifference)
 }

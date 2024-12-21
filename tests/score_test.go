@@ -26,9 +26,8 @@ func getScoreService() (*service.ScoreService, func()) {
 	}
 
 	ratingCategoryRepository := repository.NewRatingCategoryRepository(db)
-	ratingRepository := repository.NewRatingRepository(db)
-	ticketRepository := repository.NewTicketRepository(db)
-	scoreService := service.NewScoreService(ticketRepository, ratingCategoryRepository, ratingRepository)
+	scoreRepository := repository.NewScoreRepository(db)
+	scoreService := service.NewScoreService(ratingCategoryRepository, scoreRepository)
 	return scoreService, closer
 }
 
@@ -52,15 +51,15 @@ func TestGetOverAllQualityScore(t *testing.T) {
 
 	results, err := scoreService.GetOverAllQualityScore(context.TODO(), from, to)
 	assert.Nil(t, err)
-	assert.Equal(t, float64(36.61), results)
+	assert.Equal(t, float64(49.37), results)
 }
 
 func TestGetAggregatedCategoryScoresOverTime(t *testing.T) {
 	scoreService, closer := getScoreService()
 	defer closer()
 
-	from, _ := util.StringToTime("2019-07-17T00:00:00")
-	to, _ := util.StringToTime("2019-07-17T23:59:00")
+	from, _ := util.StringToTime("2019-03-01T00:00:00")
+	to, _ := util.StringToTime("2019-04-30T00:00:00")
 
 	results, err := scoreService.GetAggregatedCategoryScoresOverTime(context.TODO(), from, to)
 	assert.Nil(t, err)
@@ -76,5 +75,5 @@ func TestGetPeriodOverPeriodScoreChange(t *testing.T) {
 
 	results, err := scoreService.GetPeriodOverPeriodScoreChange(context.TODO(), from, to)
 	assert.Nil(t, err)
-	assert.Equal(t, 0.68, results.ScoreDifference)
+	assert.Equal(t, 0.04, results.ScoreDifference)
 }

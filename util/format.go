@@ -16,6 +16,11 @@ func StringToTime(value string) (t time.Time, err error) {
 	return
 }
 
+func StringToTimeWithFormat(value string, format string) (t time.Time, err error) {
+	t, err = time.Parse(format, value)
+	return
+}
+
 func FormatScore(score float64) float64 {
 	return math.Round(score*100) / 100
 }

@@ -38,10 +38,9 @@ func main() {
 	}()
 
 	ratingCategoryRepository := repository.NewRatingCategoryRepository(db)
-	ratingRepository := repository.NewRatingRepository(db)
-	ticketRepository := repository.NewTicketRepository(db)
+	scoreRepository := repository.NewScoreRepository(db)
 
-	scoreService := service.NewScoreService(ticketRepository, ratingCategoryRepository, ratingRepository)
+	scoreService := service.NewScoreService(ratingCategoryRepository, scoreRepository)
 
 	server := server.NewScoreServer(scoreService)
 	grpcServer := grpc.NewServer()

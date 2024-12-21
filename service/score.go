@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"math"
 	"time"
 
 	"github.com/fernandoalava/softwareengineer-test-task/domain"
@@ -10,23 +9,19 @@ import (
 	"github.com/samber/lo"
 )
 
-type TicketRepository interface {
-	FetchAll(ctx context.Context) (response []domain.Ticket, err error)
-}
-
 type RatingCategoryRepository interface {
 	FetchAll(ctx context.Context) (response []domain.RatingCategory, err error)
 }
 
-type RatingRepository interface {
-	FindByCreatedAtBetween(ctx context.Context, from time.Time, to time.Time) (response []domain.Rating, err error)
+type ScoreRepository interface {
 	FetchScoreByTicketBetween(ctx context.Context, from time.Time, to time.Time) (response []domain.ScoreByTicket, err error)
+	FetchAggregateScoreOverPeriod(ctx context.Context, from time.Time, to time.Time) ([]domain.ScoreByCategoryWithPeriod, error)
+	FetchOverallQuality(ctx context.Context, from, to time.Time) (float64, error)
 }
 
 type ScoreService struct {
-	ticketRepository         TicketRepository
 	ratingCategoryRepository RatingCategoryRepository
-	ratingRepository         RatingRepository
+	scoreRepository          ScoreRepository
 }
 
 type PeriodScoreWithRatings struct {
@@ -73,42 +68,21 @@ type RatingCategoryPeriodScore struct {
 	Rating         uint32
 }
 
-func NewScoreService(ticketRepository TicketRepository, ratingCategoryRepository RatingCategoryRepository, ratingRepository RatingRepository) *ScoreService {
+func NewScoreService(ratingCategoryRepository RatingCategoryRepository, scoreRepository ScoreRepository) *ScoreService {
 	return &ScoreService{
-		ticketRepository:         ticketRepository,
 		ratingCategoryRepository: ratingCategoryRepository,
-		ratingRepository:         ratingRepository,
+		scoreRepository:          scoreRepository,
 	}
 }
 
-func calculateScore(rating int, weight float32) float64 {
-	return util.FormatScore(float64(float32(rating)*weight*1/5*weight) * 100)
-}
+func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from time.Time, to time.Time) ([]TicketScoreByCategory, error) {
 
-func getRatingsWithRatingCategory(ratings []domain.Rating, ratingCategories []domain.RatingCategory) []domain.RatingWithCategory {
-	ratingCategoriesMap := lo.Associate(ratingCategories, func(ratingCategory domain.RatingCategory) (uint64, domain.RatingCategory) {
-		return ratingCategory.ID, ratingCategory
-	})
-	ratingsWithCategories := lo.Map(ratings, func(rating domain.Rating, _ int) domain.RatingWithCategory {
-		return domain.RatingWithCategory{
-			ID:             rating.ID,
-			Rating:         rating.Rating,
-			TicketID:       rating.TicketID,
-			RatingCategory: ratingCategoriesMap[rating.RatingCategoryID],
-			CreatedAt:      rating.CreatedAt,
-		}
-	})
-	return ratingsWithCategories
-}
-
-func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from time.Time, to time.Time) (scoresByTicket []TicketScoreByCategory, err error) {
-
-	err = util.ValidateTimeRange(from, to)
+	err := util.ValidateTimeRange(from, to)
 	if err != nil {
 		return nil, err
 	}
 
-	categoryScoresByTicket, err := scoreService.ratingRepository.FetchScoreByTicketBetween(ctx, from, to)
+	categoryScoresByTicket, err := scoreService.scoreRepository.FetchScoreByTicketBetween(ctx, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +96,7 @@ func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from tim
 				return RatingCategoryScore{
 					RatingCategoryID:   scoreByTicket.CategoryID,
 					RatingCategoryName: scoreByTicket.CategoryName,
-					Score:              scoreByTicket.Score,
+					Score:              util.FormatScore(scoreByTicket.Score),
 				}
 			}),
 		}
@@ -130,141 +104,93 @@ func (scoreService *ScoreService) GetScoreByTicket(ctx context.Context, from tim
 
 }
 
-func (scoreService *ScoreService) GetAggregatedCategoryScoresOverTime(ctx context.Context, from time.Time, to time.Time) (categoryScoresOverTime []CategoryScoreOverTime, err error) {
-	err = util.ValidateTimeRange(from, to)
+func (scoreService *ScoreService) GetAggregatedCategoryScoresOverTime(ctx context.Context, from time.Time, to time.Time) ([]CategoryScoreOverTime, error) {
+	err := util.ValidateTimeRange(from, to)
 	if err != nil {
 		return nil, err
 	}
 
-	ratingCategories, err := scoreService.ratingCategoryRepository.FetchAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	ratings, err := scoreService.ratingRepository.FindByCreatedAtBetween(ctx, from, to)
-	if err != nil {
-		return nil, err
-	}
-
-	ratingsWithRatingCategory := getRatingsWithRatingCategory(ratings, ratingCategories)
 	rangeOfDates := util.GenerateDateRanges(from, to)
 
-	ratingsGroupedByDate := lo.GroupBy(ratingsWithRatingCategory, func(rating domain.RatingWithCategory) time.Time {
-		return time.Date(rating.CreatedAt.Year(), rating.CreatedAt.Month(), rating.CreatedAt.Day(), 0, 0, 0, 0, rating.CreatedAt.Location())
-	})
+	categories, err := scoreService.ratingCategoryRepository.FetchAll(ctx)
 
-	ratingsGroupedByDateAndCategory := lo.MapValues(ratingsGroupedByDate, func(ratings []domain.RatingWithCategory, _ time.Time) map[uint64][]lo.Tuple3[uint64, string, float64] {
-		ratingsGroupedByCategory := lo.GroupBy(ratings, func(rating domain.RatingWithCategory) uint64 {
-			return rating.RatingCategory.ID
+	if err != nil {
+		return nil, err
+	}
+
+	aggregateScoreOverPeriod, err := scoreService.scoreRepository.FetchAggregateScoreOverPeriod(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	aggregateScoreOverPeriodGroupedByCategory := lo.MapValues(lo.GroupBy(aggregateScoreOverPeriod, func(score domain.ScoreByCategoryWithPeriod) string { return score.CategoryName }), func(scores []domain.ScoreByCategoryWithPeriod, _ string) map[util.DateRange][]domain.ScoreByCategoryWithPeriod {
+		return lo.GroupBy(scores, func(score domain.ScoreByCategoryWithPeriod) util.DateRange {
+			return score.AggregationPeriod
 		})
-		return lo.MapValues(ratingsGroupedByCategory, func(r []domain.RatingWithCategory, _ uint64) []lo.Tuple3[uint64, string, float64] {
-			return lo.Map(r, func(ratingWithCategory domain.RatingWithCategory, _ int) lo.Tuple3[uint64, string, float64] {
-				score := calculateScore(ratingWithCategory.Rating, ratingWithCategory.RatingCategory.Weight)
-				return lo.T3(ratingWithCategory.RatingCategory.ID, ratingWithCategory.RatingCategory.Name, score)
-			})
-		})
-
 	})
 
-	scorePeriods := lo.FlatMap(ratingCategories, func(ratingCategory domain.RatingCategory, _ int) []RatingCategoryPeriodScore {
-
-		return lo.FlatMap(rangeOfDates, func(dateRange util.DateRange, _ int) []RatingCategoryPeriodScore {
-			ratingsGroupedByDateAndCategoryFiltered := lo.PickBy(ratingsGroupedByDateAndCategory, func(date time.Time, _ map[uint64][]lo.Tuple3[uint64, string, float64]) bool {
-				return util.IsDateInRange(date, dateRange)
-			})
-			return lo.MapToSlice(lo.MapValues(ratingsGroupedByDateAndCategoryFiltered, func(ratingsGroupedByCategoryId map[uint64][]lo.Tuple3[uint64, string, float64], _ time.Time) RatingCategoryPeriodScore {
-				ratings, exists := ratingsGroupedByCategoryId[ratingCategory.ID]
-
-				if !exists {
-					return RatingCategoryPeriodScore{
-						RatingCategory: ratingCategory,
-						DateRange:      dateRange,
-						Score:          float64(0),
-						Rating:         uint32(0),
-					}
-				}
-				totalScore := lo.SumBy(ratings, func(rating lo.Tuple3[uint64, string, float64]) float64 {
-					_, _, score := lo.Unpack3(rating)
-					return score
-				})
-				return RatingCategoryPeriodScore{
-					RatingCategory: ratingCategory,
-					DateRange:      dateRange,
-					Score:          util.FormatScore(totalScore / float64(len(ratings))),
-					Rating:         uint32(len(ratings)),
-				}
-			}), func(date time.Time, ratingCategoryPeriodScore RatingCategoryPeriodScore) RatingCategoryPeriodScore {
-				return ratingCategoryPeriodScore
-			})
-		})
-
-	})
-
-	scorePeriodsGroupedByRatingCategory := lo.GroupBy(scorePeriods, func(ratingCategoryPeriodScore RatingCategoryPeriodScore) domain.RatingCategory {
-		return ratingCategoryPeriodScore.RatingCategory
-	})
-
-	aggregatedScorePeriodsGroupedByCategory := lo.MapValues(scorePeriodsGroupedByRatingCategory, func(scorePeriodWithCategory []RatingCategoryPeriodScore, key domain.RatingCategory) lo.Tuple3[[]PeriodScoreWithRatings, float64, uint32] {
-		periods := lo.Map(scorePeriodWithCategory, func(ratingCategoryPeriodScore RatingCategoryPeriodScore, _ int) PeriodScoreWithRatings {
-			return PeriodScoreWithRatings{
-				From:    ratingCategoryPeriodScore.DateRange.From,
-				To:      ratingCategoryPeriodScore.DateRange.To,
-				Score:   util.FormatScore(ratingCategoryPeriodScore.Score),
-				Ratings: ratingCategoryPeriodScore.Rating,
+	return lo.Map(categories, func(category domain.RatingCategory, _ int) CategoryScoreOverTime {
+		groupedByRange, exists := aggregateScoreOverPeriodGroupedByCategory[category.Name]
+		scoresWithRating := lo.FlatMap(rangeOfDates, func(currentRange util.DateRange, _ int) []PeriodScoreWithRatings {
+			existingScoreInRange, exists := groupedByRange[currentRange]
+			if !exists {
+				return []PeriodScoreWithRatings{{
+					From:    currentRange.From,
+					To:      currentRange.To,
+					Score:   float64(0),
+					Ratings: uint32(0),
+				}}
 			}
-		})
-		scoresForPeriods := lo.Map(periods, func(periodScore PeriodScoreWithRatings, _ int) float64 {
-			return periodScore.Score
-		})
-		ratingsForPeriod := lo.SumBy(periods, func(periodScore PeriodScoreWithRatings) uint32 {
-			return periodScore.Ratings
-		})
+			return lo.Map(existingScoreInRange, func(score domain.ScoreByCategoryWithPeriod, _ int) PeriodScoreWithRatings {
+				return PeriodScoreWithRatings{
+					From:    score.AggregationPeriod.From,
+					To:      score.AggregationPeriod.To,
+					Score:   util.FormatScore(score.CategoryScore),
+					Ratings: uint32(score.RatingsCount),
+				}
 
-		return lo.T3(periods, lo.Sum(scoresForPeriods)/float64(len(scoresForPeriods)), ratingsForPeriod)
-	})
-
-	categoryScoresOverTime = lo.MapToSlice(aggregatedScorePeriodsGroupedByCategory, func(ratingCategory domain.RatingCategory, scores lo.Tuple3[[]PeriodScoreWithRatings, float64, uint32]) CategoryScoreOverTime {
-		periodScores, totalScore, totalRatings := lo.Unpack3(scores)
+			})
+		})
+		if !exists {
+			return CategoryScoreOverTime{
+				CategoryName:            category.Name,
+				PeriodScoresWithRatings: scoresWithRating,
+				TotalRating:             0,
+				TotalScore:              0,
+			}
+		}
+		totalRating := lo.SumBy(scoresWithRating, func(period PeriodScoreWithRatings) uint32 {
+			return period.Ratings
+		})
+		totalScore := lo.SumBy(scoresWithRating, func(period PeriodScoreWithRatings) float64 {
+			return period.Score
+		}) / float64(len(scoresWithRating))
 		return CategoryScoreOverTime{
-			CategoryName:            ratingCategory.Name,
-			PeriodScoresWithRatings: periodScores,
-			TotalRating:             totalRatings,
+			CategoryName:            category.Name,
+			PeriodScoresWithRatings: scoresWithRating,
+			TotalRating:             totalRating,
 			TotalScore:              util.FormatScore(totalScore),
 		}
-	})
-
-	return
+	}), nil
 
 }
 
-func (scoreService *ScoreService) GetOverAllQualityScore(ctx context.Context, from time.Time, to time.Time) (overAllScore float64, err error) {
-	err = util.ValidateTimeRange(from, to)
+func (scoreService *ScoreService) GetOverAllQualityScore(ctx context.Context, from time.Time, to time.Time) (float64, error) {
+	err := util.ValidateTimeRange(from, to)
 	if err != nil {
 		return 0, err
 	}
 
-	ratingCategories, err := scoreService.ratingCategoryRepository.FetchAll(ctx)
+	score, err := scoreService.scoreRepository.FetchOverallQuality(ctx, from, to)
 	if err != nil {
 		return 0, err
 	}
 
-	ratings, err := scoreService.ratingRepository.FindByCreatedAtBetween(ctx, from, to)
-	if err != nil {
-		return 0, err
-	}
-
-	ratingsWithRatingCategory := getRatingsWithRatingCategory(ratings, ratingCategories)
-	ratingsWithRatingCategoryAndScores := lo.Map(ratingsWithRatingCategory, func(ratingWithCategory domain.RatingWithCategory, _ int) float64 {
-		return calculateScore(ratingWithCategory.Rating, ratingWithCategory.RatingCategory.Weight)
-	})
-
-	overAllScore = util.FormatScore(lo.Sum(ratingsWithRatingCategoryAndScores) / float64(len(ratingsWithRatingCategoryAndScores)))
-
-	return
+	return util.FormatScore(score), nil
 }
 
-func (scoreService *ScoreService) GetPeriodOverPeriodScoreChange(ctx context.Context, from time.Time, to time.Time) (getPeriodOverPeriodScoreChangeResponse *GetPeriodOverPeriodScoreChangeResponse, err error) {
-	err = util.ValidateTimeRange(from, to)
+func (scoreService *ScoreService) GetPeriodOverPeriodScoreChange(ctx context.Context, from time.Time, to time.Time) (*GetPeriodOverPeriodScoreChangeResponse, error) {
+	err := util.ValidateTimeRange(from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -281,12 +207,12 @@ func (scoreService *ScoreService) GetPeriodOverPeriodScoreChange(ctx context.Con
 	}
 	periodScoreCurrentPeriod := PeriodScore{From: from, To: to, Score: overAllQualityScoreCurrentPeriod}
 	periodScorePreviousPeriod := PeriodScore{From: from, To: to, Score: overAllQualityScorePreviousPeriod}
-	getPeriodOverPeriodScoreChangeResponse = &GetPeriodOverPeriodScoreChangeResponse{
+	getPeriodOverPeriodScoreChangeResponse := &GetPeriodOverPeriodScoreChangeResponse{
 		CurrentPeriod:   periodScoreCurrentPeriod,
 		PreviousPeriod:  periodScorePreviousPeriod,
-		ScoreDifference: util.FormatScore(math.Abs(float64(overAllQualityScoreCurrentPeriod - overAllQualityScorePreviousPeriod))),
+		ScoreDifference: util.FormatScore((overAllQualityScoreCurrentPeriod - overAllQualityScorePreviousPeriod) / overAllQualityScorePreviousPeriod),
 	}
 
-	return
+	return getPeriodOverPeriodScoreChangeResponse, nil
 
 }
