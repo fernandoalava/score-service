@@ -9,5 +9,5 @@ services:
         source: ./database.db
         target: /home/db/database.db
     ports:
-      - "5000:5000"
+      - "9000:9000"
 

@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	port     = util.GetEnv("SCORE_SERVICE_PORT", "5000")
+	port     = util.GetEnv("SCORE_SERVICE_PORT", "9000")
 	database = util.GetEnv("SCORE_SERVICE_DB_PATH", "")
 )
 
 func main() {
 	flag.Parse()
-	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
