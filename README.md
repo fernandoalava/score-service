@@ -21,6 +21,15 @@ Documentation:
     2. CI pipeline e.g Jenkins, Github actions or Bitbucket Pipeline, should build docker image, tag it with the correct version and push the image to a docker registry amd also Helm Chart for service could be deploy to same registry.
     3. Using a GitOps tool like Flux CD, a central repository with relevant configuration for Helm Chart, could detect new version of Helm Chart of service to detect if any updates are needed for infra or/and new version of application was deployed, and deploy changes if needed to K8S cluster.
 
+    I have included a minimal configuration for Helm Chart, if you have minikube installed you could do something like this:
+
+    1. `docker-compose -f ./docker-compose.yaml  build` -> To build docker image, this will create a docker image with the following tag score-service:latest
+    2.  Usually if you minikube can see images from your local docker you will be able to use the image if not you need to upload image to minikube using minikube cache command.
+    3.  Install score-service using helm cli, with the following command `helm install score-service --namespace score-service --create-namespace ./helm`
+    4.  You should be able to see a new namespace created in your cluster called score-service with a pod for the service.
+
+    NB! Currently the service gets deployed successfully, however the database is not present. The reason is that mounting a SQLite database is a bit more complicate to do and there are different approaches, which is out of the scope of deploying the service to K8S for this task.
+
 
 # Software Engineer Test Task
 
