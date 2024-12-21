@@ -4,7 +4,7 @@ services:
     image: score-service
     build: ./
     environment:
-      - SCORE_SERVICE_DB_PATH=/home/db/database.db
+      - DB_PATH=/home/db/database.db
     volumes:
       - type: bind
         source: ./database.db

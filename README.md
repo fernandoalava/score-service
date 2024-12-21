@@ -1,3 +1,27 @@
+Documentation:
+
+- Ticket score algorithm:
+    Calculates the weighted average rating for each ticket by:
+    -   Multiplying each rating by its corresponding category weight.
+    -   Summing these weighted ratings for each ticket.
+    -   Dividing the sum of weighted ratings by the sum of category weights for that ticket.
+    With the weighted average then:
+    -   Divides the weighted_average for each ticket by 5 (maximum possible rating).
+    -   Multiplies the result by 100 to convert it to a percentage.
+
+    This is used a based calculation to all queries used to generate the results for each endpoint, queries can be found in repository folder.
+- For testing server locally, you can use docker-compose file:
+    1. `docker-compose -f ./docker-compose.yaml  build`
+    2. `docker-compose -f ./docker-compose.yaml  up`
+
+- Project includes tests for score service and for grpc server in test folder.
+
+- Regarding deployment, my suggested approach is to use a Helm Charts, so we have centralize the infrastructure of the service in the source code. The flow should be like this:
+    1. Developer push commit into master branch
+    2. CI pipeline e.g Jenkins, Github actions or Bitbucket Pipeline, should build docker image, tag it with the correct version and push the image to a docker registry amd also Helm Chart for service could be deploy to same registry.
+    3. Using a GitOps tool like Flux CD, a central repository with relevant configuration for Helm Chart, could detect new version of Helm Chart of service to detect if any updates are needed for infra or/and new version of application was deployed, and deploy changes if needed to K8S cluster.
+
+
 # Software Engineer Test Task
 
 As a test task for [Klaus](https://www.klausapp.com) software engineering position we ask our candidates to build a small [gRPC](https://grpc.io) service using language of their choice. Preferred language for new services in Klaus is [Go](https://golang.org).
