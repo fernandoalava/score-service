@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -17,18 +16,18 @@ import (
 )
 
 var (
-	port     = util.GetEnv("SCORE_SERVICE_PORT", "9000")
-	database = util.GetEnv("SCORE_SERVICE_DB_PATH", "")
+	port     = util.GetEnv("PORT", "9000")
+	database = util.GetEnv("DB_PATH", "")
 )
 
 func main() {
-	flag.Parse()
-	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", port))
+	log.Printf("trying to listen on port %s", port)
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	if len(database) == 0 {
-		log.Fatalf("SCORE_SERVICE_DB_PATH is empty or undefined")
+		log.Fatalf("DB_PATH is empty or undefined")
 	}
 	log.Printf("loading database %s", database)
 	db, err := sql.Open("sqlite", database)
