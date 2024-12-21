@@ -12,11 +12,10 @@ import (
 type ScoreServer struct {
 	pb.UnimplementedScoresServer
 	scoreService *service.ScoreService
-	ctx          context.Context
 }
 
 func (server *ScoreServer) GetScoreByTicket(request *pb.DateRangeRequest, stream pb.Scores_GetScoreByTicketServer) error {
-	result, err := server.scoreService.GetScoreByTicket(server.ctx, request.From.AsTime(), request.To.AsTime())
+	result, err := server.scoreService.GetScoreByTicket(stream.Context(), request.From.AsTime(), request.To.AsTime())
 	if err != nil {
 		return err
 	}
@@ -29,7 +28,7 @@ func (server *ScoreServer) GetScoreByTicket(request *pb.DateRangeRequest, stream
 }
 
 func (server *ScoreServer) GetAggregatedCategoryScoresOverTime(request *pb.DateRangeRequest, stream pb.Scores_GetAggregatedCategoryScoresOverTimeServer) error {
-	result, err := server.scoreService.GetAggregatedCategoryScoresOverTime(server.ctx, request.From.AsTime(), request.To.AsTime())
+	result, err := server.scoreService.GetAggregatedCategoryScoresOverTime(stream.Context(), request.From.AsTime(), request.To.AsTime())
 	if err != nil {
 		return err
 	}
@@ -62,6 +61,6 @@ func (server *ScoreServer) GetPeriodOverPeriodScoreChange(ctx context.Context, r
 }
 
 func NewScoreServer(scoreService *service.ScoreService) *ScoreServer {
-	server := &ScoreServer{scoreService: scoreService, ctx: context.Background()}
+	server := &ScoreServer{scoreService: scoreService}
 	return server
 }

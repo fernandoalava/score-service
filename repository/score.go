@@ -258,7 +258,7 @@ func (repository *ScoreRepository) FetchOverallQuality(ctx context.Context, from
 				FilteredRatings r
 		)
 		SELECT 
-			ROUND(AVG(overall_average_rating) / 5 * 100, 2) AS overall_score 
+			COALESCE(ROUND(AVG(overall_average_rating) / 5 * 100, 2), 0.0) AS overall_score 
 		FROM 
 			WeightedAverage;
 	`

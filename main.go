@@ -11,25 +11,31 @@ import (
 	"github.com/fernandoalava/softwareengineer-test-task/repository"
 	"github.com/fernandoalava/softwareengineer-test-task/server"
 	"github.com/fernandoalava/softwareengineer-test-task/service"
+	"github.com/fernandoalava/softwareengineer-test-task/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 var (
-	port     = flag.Int("port", 5000, "The server port")
-	database = flag.String("database", "database.db", "The database path")
+	port     = util.GetEnv("SCORE_SERVICE_PORT", "5000")
+	database = util.GetEnv("SCORE_SERVICE_DB_PATH", "")
 )
 
 func main() {
 	flag.Parse()
-	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	db, err := sql.Open("sqlite", *database)
+	if len(database) == 0 {
+		log.Fatalf("SCORE_SERVICE_DB_PATH is empty or undefined")
+	}
+	log.Printf("loading database %s", database)
+	db, err := sql.Open("sqlite", database)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("database %s loaded successfully", database)
 	defer func() {
 		err := db.Close()
 		if err != nil {

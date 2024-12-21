@@ -1,0 +1,13 @@
+services:
+  score-service:
+    container_name: score-service
+    build: ./
+    environment:
+      - SCORE_SERVICE_DB_PATH=/home/db/database.db
+    volumes:
+      - type: bind
+        source: ./database.db
+        target: /home/db/database.db
+    ports:
+      - "5000:5000"
+
