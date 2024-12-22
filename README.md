@@ -2,16 +2,11 @@
 
 ### How score is calculated
 
-
-```math
-\left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)
-```
-
 * **For a single category:**
 
    - **Weighted Average:** 
 ```math
-\text{Weighted\_Average\_Category} = \frac{\sum_(Rating_i \cdot Weight_i)}{\sum Weight_i}
+\text{Weighted\_Average\_Category} = \frac{\sum (Rating_i \cdot Weight_i)}{\sum Weight_i}
 ```
       * where:
          * `Rating_i`: Rating for the i-th review within the category.
@@ -20,8 +15,9 @@
 * **For all categories:**
 
    - **Overall Weighted Average:**
-$$\text{Overall\_Weighted\_Average} = \frac{\sum (\text{Weighted\_Average\_Category}_j)}{\text{Number\_of\_Categories}}$$
-
+```math
+\text{Overall\_Weighted\_Average} = \frac{\sum (\text{Weighted\_Average\_Category}_j)}{\text{Number\_of\_Categories}}
+```
       * where:
          * `Weighted_Average_Category_j`: Weighted average for the j-th category.
          * `Number_of_Categories`: Total number of rating categories.
@@ -30,8 +26,9 @@ $$\text{Overall\_Weighted\_Average} = \frac{\sum (\text{Weighted\_Average\_Categ
 
 * **Normalized Score:** 
 
-$$\text{Score} = \left(\frac{\text{Overall\_Weighted\_Average}}{\text{Maximum\_Possible\_Rating}}\right) \times 100$$
-
+```math
+\text{Score} = \left(\frac{\text{Overall\_Weighted\_Average}}{\text{Maximum\_Possible\_Rating}}\right) \times 100
+```
    * where:
       * `Maximum_Possible_Rating`: The highest possible rating value ir our case 5
 
