@@ -10,9 +10,9 @@
 * **For a single category:**
 
    - **Weighted Average:** 
-
-$$\text{Weighted\_Average\_Category} = \frac{\sum (Rating_i \cdot Weight_i)}{\sum Weight_i}$$
-
+```math
+\text{Weighted\_Average\_Category} = \frac{\sum_(Rating_i \cdot Weight_i)}{\sum Weight_i}
+```
       * where:
          * `Rating_i`: Rating for the i-th review within the category.
          * `Weight_i`: Weight associated with the category of the i-th review.
