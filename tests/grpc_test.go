@@ -23,8 +23,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func grpcServer(ctx context.Context) (pb.ScoresClient, func()) {
-	buffer := 101024 * 1024
+func grpcServer() (pb.ScoresClient, func()) {
+	buffer := 1024 * 1024
 	lis := bufconn.Listen(buffer)
 	baseServer := grpc.NewServer()
 
@@ -48,10 +48,9 @@ func grpcServer(ctx context.Context) (pb.ScoresClient, func()) {
 		}
 	}()
 
-	conn, err := grpc.DialContext(ctx, "",
-		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-			return lis.Dial()
-		}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("passthrough://bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+		return lis.Dial()
+	}), grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
 		log.Printf("error connecting to server: %v", err)
@@ -76,7 +75,7 @@ func grpcServer(ctx context.Context) (pb.ScoresClient, func()) {
 
 func TestGrpcGetScoreByTicket(t *testing.T) {
 	ctx := context.Background()
-	client, closer := grpcServer(ctx)
+	client, closer := grpcServer()
 	defer closer()
 
 	from, _ := util.StringToTime("2019-07-17T00:00:00")
@@ -99,7 +98,7 @@ func TestGrpcGetScoreByTicket(t *testing.T) {
 
 func TestGrpcGetOverAllQualityScore(t *testing.T) {
 	ctx := context.Background()
-	client, closer := grpcServer(ctx)
+	client, closer := grpcServer()
 	defer closer()
 
 	from, _ := util.StringToTime("2019-07-17T00:00:00")
@@ -113,7 +112,7 @@ func TestGrpcGetOverAllQualityScore(t *testing.T) {
 
 func TestGrpcGetAggregatedCategoryScoresOverTime(t *testing.T) {
 	ctx := context.Background()
-	client, closer := grpcServer(ctx)
+	client, closer := grpcServer()
 	defer closer()
 
 	from, _ := util.StringToTime("2019-07-17T00:00:00")
@@ -137,7 +136,7 @@ func TestGrpcGetAggregatedCategoryScoresOverTime(t *testing.T) {
 
 func TestGrpcGetPeriodOverPeriodScoreChange(t *testing.T) {
 	ctx := context.Background()
-	client, closer := grpcServer(ctx)
+	client, closer := grpcServer()
 	defer closer()
 
 	from, _ := util.StringToTime("2019-07-17T00:00:00")
