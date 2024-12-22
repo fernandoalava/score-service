@@ -1,6 +1,6 @@
 ## Documentation
 
-### How score is calculated
+**1.Weighted Rating:**
 
 * **For a single category:**
 
@@ -30,7 +30,7 @@
 \text{Score} = \left(\frac{\text{Overall\_Weighted\_Average}}{\text{Maximum\_Possible\_Rating}}\right) \times 100
 ```
    * where:
-      * `Maximum_Possible_Rating`: The highest possible rating value ir our case 5
+      * `Maximum_Possible_Rating`: The highest possible rating value in our case 5
 
 ### Testing Locally
 
