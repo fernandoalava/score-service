@@ -99,7 +99,7 @@ func (repository *ScoreRepository) FetchAggregateScoreOverPeriod(ctx context.Con
 			c.name as rating_category_name,
 			r.rating,
 			c.weight,
-			r.created_at as review_date
+			r.created_at
 		FROM
 			ratings r
 		JOIN
@@ -113,7 +113,7 @@ func (repository *ScoreRepository) FetchAggregateScoreOverPeriod(ctx context.Con
 		SELECT
 			rating_category_id,
 			rating_category_name,
-			date(review_date) AS review_date,
+			date(created_at) AS review_date,
 			SUM(rating * weight) / SUM(weight) AS daily_average_rating,
 			COUNT(*) AS daily_rating_count
 		FROM
@@ -121,7 +121,7 @@ func (repository *ScoreRepository) FetchAggregateScoreOverPeriod(ctx context.Con
 		GROUP BY
 			rating_category_id,
 			rating_category_name,
-			date(review_date)
+			date(created_at)
 	)
 	,
 	WeeklyAverages AS (
@@ -137,7 +137,7 @@ func (repository *ScoreRepository) FetchAggregateScoreOverPeriod(ctx context.Con
 		GROUP BY
 			rating_category_id,
 			rating_category_name,
-			date(review_date, 'weekday 0'),
+			date(review_date, 'weekday 1'),
 			date(review_date, 'weekday 1', '+6 days') 
 	)
 	,
