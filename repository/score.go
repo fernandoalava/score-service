@@ -114,7 +114,7 @@ func (repository *ScoreRepository) FetchAggregateScoreOverPeriod(ctx context.Con
 			rating_category_id,
 			rating_category_name,
 			date(review_date) AS review_date,
-			AVG(rating) AS daily_average_rating,
+			SUM(rating * weight) / SUM(weight) AS daily_average_rating,
 			COUNT(*) AS daily_rating_count
 		FROM
 			FilteredRatings

@@ -1,34 +1,70 @@
-Documentation:
+## Documentation
 
-- Ticket score algorithm:
-    Calculates the weighted average rating for each ticket by:
-    -   Multiplying each rating by its corresponding category weight.
-    -   Summing these weighted ratings for each ticket.
-    -   Dividing the sum of weighted ratings by the sum of category weights for that ticket.
-    With the weighted average then:
-    -   Divides the weighted_average for each ticket by 5 (maximum possible rating).
-    -   Multiplies the result by 100 to convert it to a percentage.
+### How score is calculated
 
-    This is used a based calculation to all queries used to generate the results for each endpoint, queries can be found in repository folder.
-- For testing server locally, you can use docker-compose file:
+* **For a single category:**
+
+   - **Weighted Average:** 
+
+$$
+\text{Weighted\_Average\_Category} = \frac{\sum (Rating_i \cdot Weight_i)}{\sum Weight_i}
+$$
+
+      * where:
+         * `Rating_i`: Rating for the i-th review within the category.
+         * `Weight_i`: Weight associated with the category of the i-th review.
+
+* **For all categories:**
+
+   - **Overall Weighted Average:**
+$$
+\text{Overall\_Weighted\_Average} = \frac{\sum (\text{Weighted\_Average\_Category}_j)}{\text{Number\_of\_Categories}}
+$$
+
+      * where:
+         * `Weighted_Average_Category_j`: Weighted average for the j-th category.
+         * `Number_of_Categories`: Total number of rating categories.
+
+**2. Score Calculation:**
+
+* **Normalized Score:** 
+$$
+\text{Score} = \left(\frac{\text{Overall\_Weighted\_Average}}{\text{Maximum\_Possible\_Rating}}\right) \times 100
+$$
+
+   * where:
+      * `Maximum_Possible_Rating`: The highest possible rating value ir our case 5
+
+### Testing Locally
+
+For testing server locally, you can use docker-compose file:
+
     1. `docker-compose -f ./docker-compose.yaml  build`
     2. `docker-compose -f ./docker-compose.yaml  up`
 
-- Project includes tests for score service and for grpc server in test folder.
+Project includes tests for score service and for grpc server in test folder.
 
-- Regarding deployment, my suggested approach is to use a Helm Charts, so we have centralize the infrastructure of the service in the source code. The flow should be like this:
-    1. Developer push commit into master branch
-    2. CI pipeline e.g Jenkins, Github actions or Bitbucket Pipeline, should build docker image, tag it with the correct version and push the image to a docker registry amd also Helm Chart for service could be deploy to same registry.
-    3. Using a GitOps tool like Flux CD, a central repository with relevant configuration for Helm Chart, could detect new version of Helm Chart of service to detect if any updates are needed for infra or/and new version of application was deployed, and deploy changes if needed to K8S cluster.
+### Suggested way of deployment
 
-    I have included a minimal configuration for Helm Chart, if you have minikube installed you could do something like this:
+Regarding deployment, I would use a Helm Charts, so we have centralize the infrastructure of the service in the source code, we can version it, and publish as we would do for the service.
 
-    1. `docker-compose -f ./docker-compose.yaml  build` -> To build docker image, this will create a docker image with the following tag score-service:latest
-    2.  Usually if you minikube can see images from your local docker you will be able to use the image if not you need to upload image to minikube using minikube cache command.
-    3.  Install score-service using helm cli, with the following command `helm install score-service --namespace score-service --create-namespace ./helm`
-    4.  You should be able to see a new namespace created in your cluster called score-service with a pod for the service.
+A possible flow should look like this:
+   
+1. Developer commit into master branch.
+2. CI pipeline e.g Jenkins, Github actions or Bitbucket Pipeline, builds docker image and helm charts for the service, both are tagged with semantic version and push to company docker registry.
+3. A GitOps tool like Flux or Argo CD monitors a central Git repository containing the desired state of the Kubernetes cluster.
 
-    NB! Currently the service gets deployed successfully, however the database is not present. The reason is that mounting a SQLite database is a bit more complicate to do and there are different approaches, which is out of the scope of deploying the service to K8S for this task.
+    When a new version of the Helm Chart is detected in the repository, the GitOps tool automatically updates the Kubernetes cluster to reflect the desired state, deploying the new application version.
+
+I have included a minimal configuration for Helm Chart, it can be use locally with minikube, following these steps:
+
+1. `docker-compose -f ./docker-compose.yaml  build` -> To build docker image, this will create a docker image with the following tag score-service:latest
+2.  If your minikube can see images from your local docker you will be able to use the image if not, then you need to upload image to minikube using minikube cache command.
+3.  Install score-service using helm cli, with the following command `helm install score-service --namespace score-service --create-namespace ./helm`
+4.  You should be able to see a new namespace created in your cluster called score-service with a pod for the service.
+
+NB! Currently the service gets deployed successfully, however the database is not present. The reason is that mounting a SQLite database is a bit more complicate to do and there are different approaches.
+
 
 
 # Software Engineer Test Task
