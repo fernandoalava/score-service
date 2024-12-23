@@ -74,7 +74,7 @@ func grpcServer() (pb.ScoresClient, func()) {
 }
 
 func TestGrpcGetScoreByTicket(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 	client, closer := grpcServer()
 	defer closer()
 
@@ -97,7 +97,7 @@ func TestGrpcGetScoreByTicket(t *testing.T) {
 }
 
 func TestGrpcGetOverAllQualityScore(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 	client, closer := grpcServer()
 	defer closer()
 
@@ -111,7 +111,7 @@ func TestGrpcGetOverAllQualityScore(t *testing.T) {
 }
 
 func TestGrpcGetAggregatedCategoryScoresOverTime(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 	client, closer := grpcServer()
 	defer closer()
 
@@ -135,7 +135,7 @@ func TestGrpcGetAggregatedCategoryScoresOverTime(t *testing.T) {
 }
 
 func TestGrpcGetPeriodOverPeriodScoreChange(t *testing.T) {
-	ctx := context.Background()
+	ctx := context.TODO()
 	client, closer := grpcServer()
 	defer closer()
 
